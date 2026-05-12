@@ -39,7 +39,7 @@ Nova is a custom-designed programming language with a full compiler pipeline imp
 ## 🛠️ Technologies Used
 
 - C++
-- Python (for GUI)
+- Python (GUI)
 - Tkinter
 - g++
 
@@ -47,21 +47,7 @@ Nova is a custom-designed programming language with a full compiler pipeline imp
 
 ## ▶️ How to Run
 
-### python gui.py
----
-## Example Code
----
-module launch() {
+### 1. Run the GUI
 
-    text astronaut;
-    num fuel;
-    
-    transmit "Enter astronaut name: ";
-    receive astronaut;
-
-    transmit "Enter fuel amount: ";
-    receive fuel;
-
-    transmit astronaut + " has " + fuel + " units of fuel.";
-    land 0;
-}
+```bash
+python gui.py
