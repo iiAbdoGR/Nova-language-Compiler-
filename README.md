@@ -47,12 +47,15 @@ Nova is a custom-designed programming language with a full compiler pipeline imp
 
 ## ▶️ How to Run
 
-## python gui.py
+### python gui.py
+---
 ## Example Code
+---
 module launch() {
+
     text astronaut;
     num fuel;
-
+    
     transmit "Enter astronaut name: ";
     receive astronaut;
 
