@@ -1,3 +1,11 @@
 module launch() {
-    transmit "Hello, Nova!";
+    text name = "menna" ;
+    num age = 22;
+    
+scan (age > 20)
+{
+transmit "Hello, " + name;
+num score = 20;
 }
+flag check = true;
+  }

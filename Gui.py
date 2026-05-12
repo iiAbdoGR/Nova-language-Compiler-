@@ -3,15 +3,17 @@ from tkinter import scrolledtext
 import subprocess
 import threading
 import queue
+from PIL import Image, ImageTk
 
 BG        = "#1e1e1e"
 BG2       = "#252526"
 BG3       = "#2d2d2d"
 BORDER    = "#404040"
-FG        = "#d4d4d4"
+FG        = "#f8e9cd"
 FG_DIM    = "#858585"
-GREEN     = "#4ec9b0"
-BLUE      = "#569cd6"
+GREEN     = "#a46ca8"
+BLUE      = "#a46ca8"
+Novacolor = "#42569e"
 ORANGE    = "#ce9178"
 RED       = "#f48771"
 BTN_GREEN = "#0e7c3a"
@@ -20,7 +22,7 @@ class NovaIDE:
     def __init__(self, root):
         self.root = root
         self.root.title("Nova Compiler")
-        self.root.geometry("1200x700")
+        self.root.geometry("1400x800")
         self.root.configure(bg=BG3)
         self.root.minsize(800, 500)
         self.process = None
@@ -29,22 +31,21 @@ class NovaIDE:
     def _build_ui(self):
         mono = ("Consolas", 12)
 
-        # ── top bar ──
         top = tk.Frame(self.root, bg=BG3, pady=6)
         top.pack(fill="x")
 
-        tk.Label(top, text="🚀 NOVA", bg=BG3, fg=BLUE,
-                 font=("Consolas", 13, "bold")).pack(side="left", padx=14)
+        tk.Label(top, text="🚀 NOVA", bg=BG3, fg=Novacolor,
+                font=("Consolas", 13, "bold")).pack(side="left", padx=14)
         tk.Label(top, text="test.nova", bg=BG, fg=FG_DIM,
-                 font=("Consolas", 11), padx=12, pady=4).pack(side="left")
+                font=("Consolas", 11), padx=12, pady=4).pack(side="left")
 
         self.status_lbl = tk.Label(top, text="● Ready", bg=BG3,
-                                   fg=GREEN, font=("Consolas", 11))
+                                fg=Novacolor, font=("Consolas", 11))
         self.status_lbl.pack(side="left", padx=20)
 
         tk.Button(top, text="Clear", bg=BG2, fg=FG_DIM, font=mono,
-                  relief="flat", padx=10, command=self.clear_output,
-                  cursor="hand2").pack(side="right", padx=6)
+                relief="flat", padx=10, command=self.clear_output,
+                cursor="hand2").pack(side="right", padx=6)
 
         self.run_btn = tk.Button(
             top, text="▶  Run", bg=BTN_GREEN, fg="white",
@@ -56,15 +57,15 @@ class NovaIDE:
 
         # ── main split ──
         panes = tk.PanedWindow(self.root, orient="horizontal",
-                               bg=BORDER, sashwidth=4, sashrelief="flat")
+                            bg=BORDER, sashwidth=4, sashrelief="flat")
         panes.pack(fill="both", expand=True)
 
         # editor
         left = tk.Frame(panes, bg=BG)
         panes.add(left, minsize=300)
         tk.Label(left, text="EDITOR  —  test.nova", bg=BG2, fg=FG_DIM,
-                 font=("Consolas", 10), anchor="w",
-                 padx=10, pady=4).pack(fill="x")
+                font=("Consolas", 10), anchor="w",
+                padx=10, pady=4).pack(fill="x")
         self.editor = scrolledtext.ScrolledText(
             left, bg=BG, fg=FG, insertbackground="white",
             font=mono, relief="flat", bd=0,
@@ -74,10 +75,10 @@ class NovaIDE:
 
         # terminal
         right = tk.Frame(panes, bg=BG)
-        panes.add(right, minsize=280)
+        panes.add(right, minsize=300)
         tk.Label(right, text="TERMINAL  OUTPUT", bg=BG2, fg=FG_DIM,
-                 font=("Consolas", 10), anchor="w",
-                 padx=10, pady=4).pack(fill="x")
+                font=("Consolas", 10), anchor="w",
+                padx=10, pady=4).pack(fill="x")
 
         self.terminal = scrolledtext.ScrolledText(
             right, bg="#1a1a1a", fg=FG, insertbackground="white",
@@ -97,7 +98,7 @@ class NovaIDE:
         tk.Frame(right, bg=BORDER, height=1).pack(fill="x", side="bottom")
 
         tk.Label(input_frame, text="›", bg=BG2, fg=GREEN,
-                 font=("Consolas", 14)).pack(side="left", padx=8)
+                font=("Consolas", 14)).pack(side="left", padx=8)
 
         self.input_var = tk.StringVar()
         self.input_entry = tk.Entry(
@@ -110,14 +111,14 @@ class NovaIDE:
         self.input_entry.configure(state="disabled")
 
         tk.Button(input_frame, text="⏎", bg=BG2, fg=BLUE,
-                  font=("Consolas", 14), relief="flat",
-                  command=self.send_input, cursor="hand2").pack(side="right", padx=8)
+                font=("Consolas", 14), relief="flat",
+                command=self.send_input, cursor="hand2").pack(side="right", padx=8)
 
         # status bar
         sb = tk.Frame(self.root, bg="#007acc", height=22)
         sb.pack(fill="x", side="bottom")
         tk.Label(sb, text="Nova Language", bg="#007acc", fg="white",
-                 font=("Consolas", 10), padx=10).pack(side="right")
+                font=("Consolas", 10), padx=10).pack(side="right")
 
         self._term_write("Nova Compiler v1.0 — ready\n", "info")
         self._term_write("─" * 40 + "\n", "info")
@@ -141,7 +142,6 @@ class NovaIDE:
 
     # ── input ─────────────────────────────────────────────
     def send_input(self, event=None):
-        # لو مفيش process شغال، متعملش حاجة
         if not self.process or self.process.poll() is not None:
             return
         val = self.input_var.get()
@@ -153,9 +153,9 @@ class NovaIDE:
         except Exception as e:
             self._term_write(f"Input error: {e}\n", "err")
 
-    # ── run ───────────────────────────────────────────────
+
     def run_code(self):
-        # لو في process قديم، اقتله
+    
         if self.process and self.process.poll() is None:
             self.process.kill()
 
@@ -178,12 +178,11 @@ class NovaIDE:
                 ["compiler.exe"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,   # stderr يتدمج مع stdout
+                stderr=subprocess.STDOUT,  
                 text=True,
-                bufsize=0                   # unbuffered مهم جداً
+                bufsize=0                   
             )
 
-            # اقرأ الـ output حرف بحرف عشان تطلع فوراً
             buf = ""
             while True:
                 ch = self.process.stdout.read(1)
@@ -191,7 +190,7 @@ class NovaIDE:
                     break
                 buf += ch
                 if ch in ("\n", "\r"):
-                    line = buf.strip()
+                    line = buf.rstrip()
                     buf = ""
                     if line:
                         self.root.after(0, self._term_write, line + "\n", "normal")

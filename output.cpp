@@ -1,7 +1,12 @@
 #include <iostream>
-#include <string>
 using namespace std;
 
 int main() {
-    cout << "Hello, Nova!" << endl;
+    string name = "menna";
+    int age = 22;
+    if ((age > 20)) {
+        cout << ("Hello, " + name) << endl;
+        int score = 20;
+    }
+    bool check = true;
 }

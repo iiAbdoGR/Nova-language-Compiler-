@@ -14,7 +14,7 @@ type           = "num" | "decimal" | "text" | "flag" ;
 
 assign_stmt    = IDENTIFIER "=" expression ";" ;
 
-transmit_stmt  = "transmit" expression ";" ;
+transmit_stmt = "transmit" expression { "," expression } ";"
 
 receive_stmt   = "receive" IDENTIFIER ";" ;
 
@@ -39,7 +39,7 @@ term           = factor { ( "*" | "/" ) factor } ;
 factor         = NUMBER | STRING | BOOLEAN
                | IDENTIFIER
                | "(" expression ")" ;
-
+               
 */
 #include <iostream>
 #include <fstream>
@@ -226,7 +226,7 @@ class Parser
         Token t = current();
         if (t.category != type)
         {
-            cout << "Error at line " << t.line
+            cout << "Parser error at line " << t.line
                 << ": expected " << type
                 << " but got '" << t.value << "'" << endl;
             exit(1);
@@ -283,7 +283,7 @@ class Parser
         {
             if (check("EOF"))
             {
-                cout << "Error: missing closing '}'" << endl;
+                cout << "Parser error: missing closing '}'" << endl;
                 exit(1);
             }
             node->children.push_back(parseStatement());
@@ -311,7 +311,7 @@ class Parser
             return parseLand();
         if (check("LBRACE"))
             return parseBlock();
-        cout << "Unknown statement at line " << current().line << endl;
+        cout << "Parser Error at line " << current().line << endl;
         exit(1);
     }
     ASTNode* parseVar()
@@ -343,7 +343,14 @@ class Parser
     {
         ASTNode* node = makeNode("Transmit");
         advance();
+
         node->children.push_back(parseExpr());
+
+        while (check("COMMA")) {
+            advance();
+            node->children.push_back(parseExpr());
+        }
+
         expect("SEMICOLON");
         return node;
     }
@@ -425,7 +432,7 @@ class Parser
         }
         else
         {
-            cout << "Error at line " << current().line
+            cout << "Parser error at line " << current().line
                 << ": expected ++ or --" << endl;
             exit(1);
         }
@@ -508,7 +515,7 @@ class Parser
             expect("RPAREN");
             return e;
         }
-        cout << "Expression error at line " << t.line << endl;
+        cout << "Parser error at line " << t.line << endl;
         exit(1);
     }
 
@@ -625,7 +632,7 @@ public:
             {
                 if (left == right)
                     return "flag";
-                cout << "Type Error: invalid comparison between " << left << " and " << right << endl;
+                cout << "Semantic Error: invalid comparison between " << left << " and " << right << endl;
                 exit(1);
             }
             if (left == "num" && right == "num")
@@ -634,7 +641,7 @@ public:
                 return "decimal";
             if (left == "text" && right == "text" && op == "+")
                 return "text";
-            cout << "Type Error: invalid operation between " << left << " and " << right << endl;
+            cout << "Semantic Error: invalid operation between " << left << " and " << right << endl;
             exit(1);
         }
         return "";
@@ -665,7 +672,7 @@ public:
             string et = getType(node->children[2]);
             if (et != type)
             {
-                cout << "Type Error at line " << line << ": cannot assign " << et << " to " << type << endl;
+                cout << "Semantic Error at line " << line << ": cannot assign " << et << " to " << type << endl;
                 exit(1);
             }
             analyze(node->children[2]);
@@ -682,7 +689,7 @@ public:
                 string et = getType(node->children[2]);
                 if (et != type)
                 {
-                    cout << "Type Error at line " << line << ": cannot assign " << et << " to " << type << endl;
+                    cout << "Semantic Error at line " << line << ": cannot assign " << et << " to " << type << endl;
                     exit(1);
                 }
                 analyze(node->children[2]);
@@ -703,7 +710,7 @@ public:
             bool ok = (et == s->type) || (s->type == "decimal" && et == "num");
             if (!ok)
             {
-                cout << "Type Error: cannot assign " << et << " to " << s->type << " at line " << node->children[0]->line << endl;
+                cout << "Semantic Error: cannot assign " << et << " to " << s->type << " at line " << node->children[0]->line << endl;
                 exit(1);
             }
             analyze(node->children[1]);
@@ -714,8 +721,15 @@ public:
         {
             if (getType(node->children[0]) != "flag")
             {
-                cout << "Type Error: condition must be flag (boolean)\n";
+                cout << "Semantic Error: condition must be flag (boolean)\n";
                 exit(1);
+            }
+        }
+        if (node->type == "Transmit")
+        {
+            for (auto child : node->children)
+            {
+                getType(child); 
             }
         }
 
@@ -804,7 +818,6 @@ class CodeGenerator {
         if (node->type == "Program") {
             string code;
             code += "#include <iostream>\n";
-            code += "#include <string>\n";
             code += "using namespace std;\n\n";
 
             for (auto c : node->children)
@@ -851,7 +864,12 @@ class CodeGenerator {
         }
 
         if (node->type == "Transmit") {
-            return "cout" + genConcat(node->children[0]) + " << endl;\n";
+            string code = "cout";
+            for (auto child : node->children) {
+                code += " << " + genExpr(child);
+            }
+            code += " << endl;\n";
+            return code;
         }
 
         if (node->type == "Receive") {
