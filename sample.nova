@@ -1,0 +1,14 @@
+module launch() {
+
+    text astronaut;
+    num fuel;
+
+    transmit "Enter astronaut name: ";
+    receive astronaut;
+
+    transmit "Enter fuel amount: ";
+    receive fuel;
+
+    transmit astronaut + " has " + fuel + " units of fuel.";
+    land 0;
+}
